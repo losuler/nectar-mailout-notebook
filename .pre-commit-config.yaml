@@ -1,0 +1,38 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: detect-private-key  # Security check
+
+  # Jinja2 templates
+  - repo: https://github.com/djlint/djLint
+    rev: v1.36.4  # Use latest stable version
+    hooks:
+      - id: djlint
+        name: djlint (jinja lint)
+        args: ["--profile=jinja"]
+        files: \.(j2)$
+
+  # Clean Jupyter Notebooks
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
+
+  # Python & Notebook Cell Linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.0
+    hooks:
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
+
+  # Security: Scan for passwords/API keys in code and templates
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
