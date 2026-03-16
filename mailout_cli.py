@@ -60,7 +60,7 @@ def parse_args():
     )
     parser.add_argument(
         "--body-file",
-        help="Email body from template file in templates/ directory",
+        help="Email body from template file in templates/ or markdown/ directory (use 'markdown/...' for markdown templates)",
     )
     parser.add_argument(
         "--start-time",

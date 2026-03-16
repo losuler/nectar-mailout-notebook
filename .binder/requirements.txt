@@ -23,3 +23,4 @@ nectarclient-lib
 kubernetes
 taynacclient
 jinja2
+mistune

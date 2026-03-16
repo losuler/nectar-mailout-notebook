@@ -4,6 +4,8 @@ from getpass import getpass
 from zoneinfo import ZoneInfo
 
 import openstack
+import mistune
+from mistune.directives import RSTDirective, Include
 from taynacclient import client as taynacclient
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
@@ -58,6 +60,21 @@ class MailoutHelper:
             loader=FileSystemLoader("templates"),
             trim_blocks=True,
             undefined=StrictUndefined,
+        )
+
+        # Set up markdown template environment using 'markdown' directory
+        self.markdown_template_env = Environment(
+            loader=FileSystemLoader("markdown"),
+            trim_blocks=True,
+            undefined=StrictUndefined,
+        )
+        self.markdown_renderer = mistune.create_markdown(
+            plugins=[
+                "strikethrough",
+                "table",
+                "task_lists",
+                RSTDirective([Include()]),
+            ]
         )
 
     def _parse_time(self, time_input, timezone):
@@ -304,14 +321,35 @@ class MailoutHelper:
         """Render body from a template file.
 
         Args:
-            fn: Name of the template file in the template directory
+            fn: Name of the template file. If path starts with 'markdown/',
+                the markdown template environment will be used and the
+                rendered markdown will be converted to HTML using mistune's
+                include directive for fragments.
             context: Dictionary of template variables
 
         Returns:
-            Rendered body string
+            Rendered body string (HTML)
         """
-        t = self.template_env.get_template(fn)
-        return t.render(context).strip()
+        if fn.startswith("markdown/"):
+            fn = fn[len("markdown/") :]
+            t = self.markdown_template_env.get_template(fn)
+            rendered = t.render(context).strip()
+            import tempfile
+            import os
+
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".md", delete=False, dir="markdown"
+            ) as tmp:
+                tmp.write(rendered)
+                tmp_path = tmp.name
+            try:
+                result, _ = self.markdown_renderer.read(tmp_path)
+                return result
+            finally:
+                os.unlink(tmp_path)
+        else:
+            t = self.template_env.get_template(fn)
+            return t.render(context).strip()
 
     def populate_data_from_instances(self, instances):
         """Build a dictionary of project, users and instances.
