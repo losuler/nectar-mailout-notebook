@@ -16,6 +16,19 @@ def parse_args():
         help="OpenStack identity URL",
     )
     parser.add_argument(
+        "--use-app-credentials",
+        action="store_true",
+        help="Use application credentials instead of token",
+    )
+    parser.add_argument(
+        "--app-credential-id",
+        help="Application credential ID (prompts if not provided with --use-app-credentials)",
+    )
+    parser.add_argument(
+        "--app-credential-secret",
+        help="Application credential secret (prompts if not provided with --use-app-credentials)",
+    )
+    parser.add_argument(
         "--openstack-token",
         help="OpenStack token (prompts if not provided)",
     )
@@ -91,9 +104,21 @@ def main():
         print("Error: must use either --preview or --send")
         sys.exit(1)
 
-    token = args.openstack_token
-    if token is None:
-        token = getpass(prompt="Enter your OpenStack Token: ")
+    use_app_creds = args.use_app_credentials
+    app_cred_id = args.app_credential_id
+    app_cred_secret = args.app_credential_secret
+
+    if use_app_creds:
+        if app_cred_id is None:
+            app_cred_id = getpass(prompt="Enter your Application Credential ID: ")
+        if app_cred_secret is None:
+            app_cred_secret = getpass(
+                prompt="Enter your Application Credential Secret: "
+            )
+    else:
+        token = args.openstack_token
+        if token is None:
+            token = getpass(prompt="Enter your OpenStack Token: ")
 
     helper = MailoutHelper(
         start_time=args.start_time,
@@ -102,7 +127,13 @@ def main():
     )
 
     print(f"Connecting to OpenStack at {args.openstack_url}...")
-    helper.setup_openstack(args.openstack_url, token=token)
+    helper.setup_openstack(
+        args.openstack_url,
+        use_app_credentials=use_app_creds,
+        app_credential_id=app_cred_id,
+        app_credential_secret=app_cred_secret,
+        token=token if not use_app_creds else None,
+    )
 
     action = "send" if args.send else "preview"
     print(

@@ -94,28 +94,46 @@ class MailoutHelper:
         ts = self._end_time.strftime(TIME_FORMAT)
         return f"{ts} {self.timezone}"
 
-    def setup_openstack(self, auth_url, token=None):
-        """Set up OpenStack connection with token authentication.
+    def setup_openstack(
+        self,
+        auth_url,
+        use_app_credentials=False,
+        app_credential_id=None,
+        app_credential_secret=None,
+        token=None,
+    ):
+        """Set up OpenStack connection.
 
         Args:
             auth_url: OpenStack identity URL
+            use_app_credentials: Use application credentials instead of token
+            app_credential_id: Application credential ID
+            app_credential_secret: Application credential secret
             token: OpenStack token (if None, will prompt for it)
 
         Returns:
             OpenStack connection object
         """
-        if token is None:
-            token = getpass(prompt="Enter your OpenStack Token: ")
+        if use_app_credentials:
+            self.conn = openstack.connect(
+                auth_url=auth_url,
+                auth_type="v3applicationcredential",
+                application_credential_id=app_credential_id,
+                application_credential_secret=app_credential_secret,
+            )
+        else:
+            if token is None:
+                token = getpass(prompt="Enter your OpenStack Token: ")
 
-        self.conn = openstack.connect(
-            auth_url=auth_url,
-            token=token,
-            auth_type="token",
-        )
+            self.conn = openstack.connect(
+                auth_url=auth_url,
+                token=token,
+                auth_type="token",
+            )
 
-        # Verify token is valid
-        auth_ref = self.conn.session.auth.get_auth_ref(self.conn.session)
-        print(f"Token expires at: {auth_ref.expires}")
+            auth_ref = self.conn.session.auth.get_auth_ref(self.conn.session)
+            print(f"Token expires at: {auth_ref.expires}")
+
         return self.conn
 
     def get_taynac_client(self):
