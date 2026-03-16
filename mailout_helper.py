@@ -6,7 +6,15 @@ from zoneinfo import ZoneInfo
 import openstack
 from taynacclient import client as taynacclient
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
-from IPython.display import display, HTML
+
+try:
+    from IPython.display import display, HTML
+
+    HAS_IPYTHON = True
+except ImportError:
+    HAS_IPYTHON = False
+    display = None
+    HTML = None
 
 
 LOG_LEVEL = logging.INFO
@@ -351,15 +359,21 @@ class MailoutHelper:
         return notifications
 
     def preview_notification(self, notification):
-        """Preview a notification in the notebook.
+        """Preview a notification in the notebook or CLI.
 
         Args:
             notification: Dictionary containing 'subject', 'body', 'to', and 'cc'
         """
-        display(notification.get("to"))
-        display(notification.get("cc", "N/A"))
-        display(HTML(notification["subject"]))
-        display(HTML(notification["body"]))
+        if HAS_IPYTHON:
+            display(notification.get("to"))
+            display(notification.get("cc", "N/A"))
+            display(HTML(notification["subject"]))
+            display(HTML(notification["body"]))
+        else:
+            print(f"To: {notification.get('to')}")
+            print(f"CC: {notification.get('cc', [])}")
+            print(f"Subject: {notification['subject']}")
+            print(f"Body: {notification['body']}")
 
     def send_notification(self, notification):
         """Send notification via Taynac.
